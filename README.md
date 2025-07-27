@@ -23,7 +23,7 @@
 5. Запуск проекта
 
 ## Клонируйте репозиторий:
-git clone https://github.com/andrey-evgenevich/DRF \
+git clone https://github.com/Andropov-pixel/django30/ \
 Создайте файл .env в корне проекта и добавьте туда необходимые переменные окружения, указанные в файле .env.sample.\
 Запустите проект, выполнив команду для запуска в фоновом режиме:\
 docker-compose up -d\
