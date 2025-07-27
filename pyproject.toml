@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "вка"
+version = "0.1.0"
+description = ""
+authors = ["ttt.temaa <artem1005200776@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+isort = "^6.0.0"
+black = "^25.1.0"
+psycopg2-binary = "^2.9.10"
+dotenv = "^0.9.9"
+python-dotenv = "^1.0.1"
+pillow = "^11.1.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
