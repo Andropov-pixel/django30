@@ -1,22 +1,30 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
+
 from lms.models import Course, Lesson
 
 
-class CustomUser(AbstractUser):
-    """Модель пользователя"""
+class User(AbstractUser):
+    """Модель: Пользователь"""
 
     username = None
+    email = models.EmailField(unique=True, verbose_name="Почта")
 
-    email = models.EmailField(unique=True, verbose_name="Электронная почта")
+    first_name = models.CharField(
+        max_length=30, blank=True, null=True, verbose_name="Имя"
+    )
+    last_name = models.CharField(
+        max_length=50, blank=True, null=True, verbose_name="Фамилия"
+    )
     phone = models.CharField(
         max_length=15, blank=True, null=True, verbose_name="Телефон"
     )
-    city = models.CharField(
-        max_length=30, blank=True, null=True, verbose_name="Город"
+    country = models.CharField(
+        max_length=50, blank=True, null=True, verbose_name="Страна"
     )
-    avatar = models.ImageField(
-        upload_to="avatar", blank=True, null=True, verbose_name="Аватар"
+    photo = models.ImageField(
+        upload_to="users/avatars/", blank=True, null=True, verbose_name="Фото"
     )
 
     USERNAME_FIELD = "email"
@@ -38,7 +46,7 @@ class Payment(models.Model):
     METHOD_CHOICES = [(CASH, "Наличные"), (TRANSFER, "Перевод")]
 
     user = models.ForeignKey(
-        CustomUser,
+        User,
         on_delete=models.CASCADE,
         related_name="payments",
         verbose_name="Пользователь",
@@ -75,3 +83,15 @@ class Payment(models.Model):
     class Meta:
         verbose_name = "Платеж"
         verbose_name_plural = "Платежи"
+
+class Subscription(models.Model):
+        """Модель: Подписки"""
+
+        user = models.ForeignKey(User, verbose_name="Пользователь", on_delete=models.CASCADE)
+        date = models.DateTimeField(default=timezone.now,
+                                    max_length=30, blank=True, null=True, verbose_name="Дата и время подписки")
+        course = models.ForeignKey(Course, blank=True, null=True, verbose_name="Подписанный курс",
+                                   on_delete=models.CASCADE, related_name="subscribes")
+
+        def __str__(self):
+            return f'{self.user} - {self.course or self.course}'

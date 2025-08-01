@@ -21,9 +21,9 @@ class CourseSubscriptionSerializer(ModelSerializer):
 
 class CourseSerializer(ModelSerializer):
     lessons_count = SerializerMethodField()
-    lessons = LessonSerializer(many=True)
+    lessons = LessonSerializer(read_only=True)
     subscription = serializers.SerializerMethodField()
-    lessons = LessonSerializer(many=True, read_only=True)
+    lessons = LessonSerializer(read_only=True)
 
     def get_subscription(self, course):
         currency_user = self.context.get("request", None).user
