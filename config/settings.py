@@ -1,21 +1,21 @@
-from pathlib import Path
-from dotenv import load_dotenv
 import os
-from datetime import timedelta
 import sys
+from datetime import timedelta
+from pathlib import Path
 
+from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret")
+SECRET_KEY = os.getenv("SECRET_KEY")
+
 STRIPE_API_KEY = os.getenv("STRIPE_API_KEY")
 
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -25,13 +25,12 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    "rest_framework_simplejwt",
-    "lms",
-    "users",
-    "drf_yasg",
-    "corsheaders",
-    "django_celery_beat",
     "django_filters",
+    "rest_framework_simplejwt",
+    "drf_yasg",
+    "django_celery_beat",
+    "users",
+    "materials",
 ]
 
 MIDDLEWARE = [
@@ -42,7 +41,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -66,17 +64,14 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 REST_FRAMEWORK = {
-    "DEFAULT_FILTER_BACKENDS": [
-        "django_filters.rest_framework.DjangoFilterBackend"
-    ],
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication"
-    ],
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated"
+        "rest_framework.permissions.IsAuthenticated",
     ],
 }
-
 
 DATABASES = {
     "default": {
@@ -88,7 +83,6 @@ DATABASES = {
         "PORT": os.getenv("POSTGRES_PORT"),
     }
 }
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -107,70 +101,61 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "Europe/Moscow"
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
 USE_TZ = True
 
+STATIC_URL = "static/"
 
-# Setting up CORS
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:127.0.0.1:8000",
-    "https://read-and-write.example.com",
-]
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://read-and-write.example.com",
-]
+AUTH_USER_MODEL = "users.User"
 
-CORS_ALLOW_ALL_ORIGINS = False
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+}
+
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
 
+# set the celery result backend
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
 
-CELERY_TIMEZONE = TIME_ZONE
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_PORT = os.getenv("EMAIL_PORT")
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
 
-CELERY_TASK_TRACK_STARTED = True
+SERVER_EMAIL = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_BROKER_CONNECTION_RETRY = True
 
+# запуск задачи по расписанию через celery beat
 CELERY_BEAT_SCHEDULE = {
-    "task-user-block": {
-        "task": "users.tasks.user_block",
+    "blocking_user": {
+        "task": "materials.tasks.blocking_user",
         "schedule": timedelta(days=1),
     },
 }
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.mail.ru"
-EMAIL_PORT = 465
-EMAIL_USE_SSL = True
-EMAIL_USE_TLS = False
-EMAIL_HOST_USER = os.getenv("EMAIL_USERNAME")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-SERVER_EMAIL = EMAIL_HOST_USER
-
-STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-
-MEDIA_URL = "media/"
-
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-
-AUTH_USER_MODEL = "users.CustomUser"
-LOGIN_REDIRECT_URL = "/"
-LOGIN_URL = "users:login"
-
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-if "test" in sys.argv:
+# необходимо чтобы при запуске тестов использовалась база sqlite
+if 'test' in sys.argv:
     DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "test_db.sqlite3",
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'test_db_sqlite3',
         }
     }

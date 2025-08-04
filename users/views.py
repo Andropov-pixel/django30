@@ -1,45 +1,70 @@
-from rest_framework import viewsets
-from .models import CustomUser, Payment
-from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from .permissions import IsUser
-from .serializers import (
-    PaymentSerializer,
-    UserCommonSerializer,
-    CustomUserSerializer,
-)
+from requests import Response
+from rest_framework import filters, status
+from rest_framework.generics import CreateAPIView
+from rest_framework.permissions import AllowAny
+from rest_framework.viewsets import ModelViewSet
+
+from materials.models import Course
+from users.models import Payments, User
+from users.serializers import PaymentsSerializer, UserSerializer
+from users.services import (create_stripe_price, create_stripe_product,
+                            create_stripe_sessions)
 
 
-class CustomUserViewSet(viewsets.ModelViewSet):
-    model = CustomUser
-    queryset = CustomUser.objects.all()
+class UserViewSet(ModelViewSet):
+    """User View."""
 
-    def get_serializer_class(self):
-        if (
-            self.action in ("retrieve", "update", "partial_update", "destroy")
-            and self.request.user.email == self.get_object().email
-        ):
-            return CustomUserSerializer
-        return UserCommonSerializer
-
-    def get_permissions(self):
-        """Права на действия пользователя"""
-
-        if self.action in ("update", "partial_update", "destroy"):
-            permission_classes = [IsAuthenticated, IsUser]
-        elif self.action == "create":
-            permission_classes = [AllowAny]
-        else:
-            permission_classes = [IsAuthenticated]
-
-        return [permission() for permission in permission_classes]
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
 
 
-class PaymentViewSet(viewsets.ModelViewSet):
-    model = Payment
-    serializer_class = PaymentSerializer
-    queryset = Payment.objects.all()
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ["course", "lesson", "method"]
-    orderind_fields = ["payment_date"]
+class UserCreateAPIView(CreateAPIView):
+    """CRUD для регистрации пользователя."""
+
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = (AllowAny,)
+
+    def perform_create(self, serializer):
+        user = serializer.save(is_active=True)
+        user.set_password(user.password)
+        user.save()
+
+
+class PaymentsViewSet(ModelViewSet):
+    """Payments View."""
+
+    queryset = Payments.objects.all()
+    serializer_class = PaymentsSerializer
+
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+
+    filterset_fields = (
+        "paid_course",
+        "paid_lesson",
+        "payment_method",
+    )
+    ordering_fields = ("payment_date",)
+
+
+class PaymentCreateAPIView(CreateAPIView):
+    """Оплата курса через stripe"""
+
+    queryset = User.objects.all()
+    serializer_class = PaymentsSerializer
+
+    def post(self, request):
+        course_id = request.data.get("course_id")
+        amount = request.data.get("amount")
+        course = Course.objects.get(id=course_id)
+
+        product = create_stripe_product(course)
+        price = create_stripe_price(amount, product.id)
+
+        session_id, payment_link = create_stripe_sessions(price)
+
+        return Response(
+            {"session_id": session_id, "payment_Link": payment_link},
+            status=status.HTTP_201_CREATED,
+        )
