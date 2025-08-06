@@ -6,12 +6,11 @@ from rest_framework_simplejwt.views import (TokenObtainPairView,
 
 from users.apps import UsersConfig
 from users.views import (PaymentCreateAPIView, PaymentsViewSet,
-                         UserCreateAPIView, UserViewSet)
+                         UserCreateAPIView)
 
 app_name = UsersConfig.name
 
 router = DefaultRouter()
-router.register(r"user", UserViewSet, basename="user")
 router.register(r"payments", PaymentsViewSet, basename="payments")
 
 urlpatterns = [

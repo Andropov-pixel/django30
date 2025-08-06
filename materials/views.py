@@ -16,12 +16,25 @@ from materials.serializers import CourseSerializer, LessonSerializer
 from materials.tasks import send_information_about_course_update
 from users.permissions import IsModer, IsOwner
 
-
+from rest_framework import viewsets  # Добавьте этот импорт
+from rest_framework.permissions import IsAuthenticated
+from materials.models import Course
+from materials.permissions import IsModerator  # Ваш кастомный permission
 @method_decorator(
     name="list", decorator=swagger_auto_schema(operation_description="Course ViewSet")
 )
-class CourseViewSet(ModelViewSet):
-    """Course ViewSet."""
+class CourseViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Course.objects.all()
+
+        # Если пользователь модератор - возвращаем все курсы
+        if self.request.user.is_staff or IsModerator().has_permission(self.request, self):
+            return queryset
+
+        # Иначе возвращаем только курсы текущего пользователя
+        return queryset.filter(owner=self.request.user)
 
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
@@ -56,12 +69,18 @@ class LessonCreateAPIView(CreateAPIView):
         lesson.save()
 
 
-class LessonListAPIView(ListAPIView):
-    """Lesson List."""
+class LessonListView(ListAPIView):
+    permission_classes = [IsAuthenticated]
 
-    queryset = Lesson.objects.all()
-    serializer_class = LessonSerializer
-    pagination_class = CustomPagination
+    def get_queryset(self):
+        queryset = Lesson.objects.all()
+
+        # Если пользователь модератор - возвращаем все уроки
+        if self.request.user.is_staff or IsModerator().has_permission(self.request, self):
+            return queryset
+
+        # Иначе возвращаем только уроки текущего пользователя
+        return queryset.filter(owner=self.request.user)
 
 
 class LessonRetrieveAPIView(RetrieveAPIView):
