@@ -12,13 +12,6 @@ from users.services import (create_stripe_price, create_stripe_product,
                             create_stripe_sessions)
 
 
-class UserViewSet(ModelViewSet):
-    """User View."""
-
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-
-
 class UserCreateAPIView(CreateAPIView):
     """CRUD для регистрации пользователя."""
 
